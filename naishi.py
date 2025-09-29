@@ -3,7 +3,21 @@ from dataclasses import dataclass, field
 from banner import print_banner
 import random as r
 
-# Game State
+# General functions
+# Making a choice 
+def get_choice(prompt, options):
+    while True:
+        try:
+            choice = int(input(prompt))
+            if choice in options:
+                return choice
+            else:
+                print(f"Please enter only {options}.")
+        except ValueError:
+            print("Please enter a number.")
+
+
+### Class definition ###
 @dataclass
 class GameState:
     cards: List[str] = field(default_factory=list)
@@ -12,6 +26,7 @@ class GameState:
     decks: List[List[str]] = field(default_factory=list)
     player_hands: List[List[str]] = field(default_factory=list)
     player_lines: List[List[str]] = field(default_factory=list)
+    emissaries: List[int] = field(default_factory=list)
     current_player: int = 0
     
     @staticmethod
@@ -65,25 +80,13 @@ class GameState:
         player_hands.append(game_list[-2:])
         player_hands.append(game_list[-4:-2])
         
-        # Drafting
-        def get_choice(prompt, options):
-            while True:
-                try:
-                    choice = int(input(prompt))
-                    if choice in options:
-                        return choice
-                    else:
-                        print(f"Please enter only {options}.")
-                except ValueError:
-                    print("Please enter a number.")
-
         p1_choice = get_choice(
-            f'Player 1 - What card do you want to give to your opponent ? {player_hands[0][0]} or {player_hands[0][1]} ? (1/2) ',
+            f'Player 1 - What card do you want to give to your opponent ? (1/2)\n\n1. {player_hands[0][0]}\n2. {player_hands[0][1]}\n\n',
             [1, 2]
         )
 
         p2_choice = get_choice(
-            f'Player 2 - What card do you want to give to your opponent ? {player_hands[1][0]} or {player_hands[1][1]} ? (1/2) ',
+            f'Player 2 - What card do you want to give to your opponent ? (1/2)\n\n1. {player_hands[1][0]}\n2. {player_hands[1][1]}\n\n',
             [1, 2]
         )
         
@@ -96,9 +99,7 @@ class GameState:
             if p2_choice == 1:
                 player_hands[0][1], player_hands[1][0] = player_hands[1][0], player_hands[0][1]
             else:
-                player_hands[0][1], player_hands[1][1] = player_hands[1][1], player_hands[0][1]
-            
-                  
+                player_hands[0][1], player_hands[1][1] = player_hands[1][1], player_hands[0][1]   
             
         
         for hand in range(len(player_hands)):
@@ -119,8 +120,13 @@ class GameState:
         
         state.player_lines = player_lines
         
+        # Emissaries
+        state.emissaries = [2, 2]
+        
         return state
-    
+
+### Functions ###
+    # Printing the Game State to the console
     def show(self):
         # Decks
         print("\n")
@@ -177,3 +183,92 @@ class GameState:
         print(hand_row)
         print("="* 78)
         print("\n")
+
+    # Discarding for Developing
+    def choose_discard(self, player_index: int) -> int:
+        """Display hand + line with numbers 1-10 for discarding and returns the choice"""
+    
+        hand = self.player_hands[player_index]
+        line = self.player_lines[player_index]
+    
+        print("\n" + "="*18)
+        print(f"|| Player {player_index + 1} ||")
+        print("="*18)
+    
+        # Line table
+        print("\n" + "="*18)
+        print("|| Line         ||")
+        print("="*78)
+        number_row_line = "|| " + " | ".join(f"{i+1:<12}" for i in range(len(line))) + " ||"
+        print(number_row_line)
+        print("-"*78)
+        card_row_line = "|| " + " | ".join(f"{card:<12}" for card in line) + " ||"
+        print(card_row_line)
+        print("="*78 + "\n")
+    
+        # Hand table
+        print("="*18)
+        print("|| Hand         ||")
+        print("="*78)
+        number_row_hand = "|| " + " | ".join(f"{i+1+len(line):<12}" for i in range(len(hand))) + " ||"
+        print(number_row_hand)
+        print("-"*78)
+        card_row_hand = "|| " + " | ".join(f"{card:<12}" for card in hand) + " ||"
+        print(card_row_hand)
+        print("="*78 + "\n")
+    
+        # Ask for choice
+        choice = get_choice(
+            f"Player {player_index + 1}, which card do you want to discard? (1-{len(line)+len(hand)})\n",
+            list(range(1, len(line)+len(hand)+1))
+        )
+    
+        # Return a tuple: (source, index) -> 'line' or 'hand', index in that source
+        if choice <= len(line):
+            return ('line', choice - 1)
+        else:
+            return ('hand', choice - len(line) - 1)  # careful with indexing
+
+
+    # Playing a turn 
+    def play(self):
+        current_player = self.current_player
+        emissaries = self.emissaries[current_player]
+        options = [
+            'Emissary',
+            'Developing',
+            'Decree',
+            'Ending']
+        
+        choice = get_choice(
+            f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2.Send an Emissary\n3. Impose an Imperial Decree\n4.Declare the end of the game\n\n',
+            [1, 2, 3, 4]
+        )
+        
+        if choice == 1:
+            source, index = self.choose_discard(current_player)
+            if source == 'hand':
+                self.player_hands[current_player][index] = self.decks[index][0]
+                self.decks[index].pop(0)
+                self.decks[index].append('')
+                print(f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the {index+1} position in their {source}.\n")
+            else:
+                self.player_lines[current_player][index] = self.decks[index][0]
+                self.decks[index].pop(0)
+                self.decks[index].append('')
+                print(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the {index+1} position in their {source}.\n")
+        if choice == 4:
+            return True
+        
+        self.current_player = 1 - current_player
+
+        
+        
+        
+
+
+
+
+
+
+

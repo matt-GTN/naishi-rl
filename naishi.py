@@ -2,7 +2,7 @@ from typing import List, Dict
 from dataclasses import dataclass, field
 from banner import print_banner
 import random as r
-
+from termcolor import colored
 # General functions
 # Making a choice 
 def get_choice(prompt, options):
@@ -28,7 +28,10 @@ class GameState:
     player_lines: List[List[str]] = field(default_factory=list)
     emissaries: List[int] = field(default_factory=list)
     current_player: int = 0
-    
+    cards_left: List[int] = field(default_factory=list)
+    ending_available: bool = False
+
+### Initialisation ###
     @staticmethod
     def create_initial_state(seed=None):
         print("\n")
@@ -54,6 +57,7 @@ class GameState:
                 "Ninja"]
 
         cards_count = [2, 4, 4, 4, 3, 4, 2, 2, 5, 2, 2]
+        cards_left = [6, 6, 6, 6, 6]
         total_cards_list = []
 
         for card, count in zip(cards, cards_count):
@@ -62,6 +66,7 @@ class GameState:
         
         state.cards = cards
         state.card_count = cards_count
+        state.cards_left = cards_left
         state.total_cards_list = total_cards_list
 
         # Decks
@@ -116,7 +121,7 @@ class GameState:
         player_lines = []
         
         for i in range(2):
-            player_lines.append(base_line)
+            player_lines.append(base_line.copy( ))
         
         state.player_lines = player_lines
         
@@ -128,60 +133,47 @@ class GameState:
 ### Functions ###
     # Printing the Game State to the console
     def show(self):
-        # Decks
+        # River
         print("\n")
-        print("="*78)
-        print("|| Deck 1       | Deck 2       | Deck 3       | Deck 4       | Deck 5       ||")
-        print("="*78)
-        
-        for i in range(len(self.decks[0])):
-            if i != 0:
-                print("-"*78)
-            row = "|| " + " | ".join(f"{self.decks[j][i]:<12}" for j in range(5)) + " ||"
-            print(row)
-        
-        print("="*78)
+        print(colored("=" * 18, "blue"))
+        print(colored("|| River        ||", "blue"))
+        print(colored("=" * 78, "blue"))
+        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+        print(colored(row, "blue"))
+        print(colored("="*78, "blue"))
+        row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
+        print(colored(row, "blue"))
+        print(colored("="*78, "blue"))
         print("\n")
-        
         # Player 1
-        print("="* 18)
-        print("|| Player 1     ||")
-        print("="* 18)
-        print("\n")
-        print("="* 18)
-        print("|| Line         ||")
-        print("="* 78)
+        print(colored("=" * 18, "magenta"))
+        print(colored("|| Player 1     ||", "magenta"))
+        print(colored("=" * 18, "magenta"))
+        print(colored("|| Line         ||", "magenta"))
+        print(colored("=" * 78, "magenta"))
         line_row = "|| " + " | ".join(f"{card:<12}" for card in self.player_lines[0]) + " ||"
-        print(line_row)
-        print("="* 78)
-        print("\n")
-        print("="* 18)
-        print("|| Hand         ||")
-        print("="* 78)
+        print(colored(line_row, "magenta"))
+        print(colored("=" * 78, "magenta"))
+        print(colored("|| Hand         ||", "magenta"))
+        print(colored("=" * 78, "magenta"))
         hand_row = "|| " + " | ".join(f"{card:<12}" for card in self.player_hands[0]) + " ||"
-        print(hand_row)
-        print("="* 78)
+        print(colored(hand_row, "magenta"))
+        print(colored("=" * 78, "magenta"))
         print("\n")
-        
-        
         # Player 2
-        print("="* 18)
-        print("|| Player 2     ||")
-        print("="* 18)
-        print("\n")
-        print("="* 18)
-        print("|| Line         ||")
-        print("="* 78)
+        print(colored("=" * 18, "yellow"))
+        print(colored("|| Player 2     ||", "yellow"))
+        print(colored("=" * 18, "yellow"))
+        print(colored("|| Line         ||", "yellow"))
+        print(colored("=" * 78, "yellow"))
         line_row = "|| " + " | ".join(f"{card:<12}" for card in self.player_lines[1]) + " ||"
-        print(line_row)
-        print("="* 78)
-        print("\n")
-        print("="* 18)
-        print("|| Hand         ||")
-        print("="* 78)
+        print(colored(line_row, "yellow"))
+        print(colored("=" * 78, "yellow"))
+        print(colored("|| Hand         ||", "yellow"))
+        print(colored("=" * 78, "yellow"))
         hand_row = "|| " + " | ".join(f"{card:<12}" for card in self.player_hands[1]) + " ||"
-        print(hand_row)
-        print("="* 78)
+        print(colored(hand_row, "yellow"))
+        print(colored("=" * 78, "yellow"))
         print("\n")
 
     # Discarding for Developing
@@ -190,44 +182,66 @@ class GameState:
     
         hand = self.player_hands[player_index]
         line = self.player_lines[player_index]
-    
-        print("\n" + "="*18)
-        print(f"|| Player {player_index + 1} ||")
-        print("="*18)
-    
-        # Line table
-        print("\n" + "="*18)
-        print("|| Line         ||")
-        print("="*78)
-        number_row_line = "|| " + " | ".join(f"{i+1:<12}" for i in range(len(line))) + " ||"
-        print(number_row_line)
-        print("-"*78)
-        card_row_line = "|| " + " | ".join(f"{card:<12}" for card in line) + " ||"
-        print(card_row_line)
-        print("="*78 + "\n")
-    
-        # Hand table
-        print("="*18)
-        print("|| Hand         ||")
-        print("="*78)
-        number_row_hand = "|| " + " | ".join(f"{i+1+len(line):<12}" for i in range(len(hand))) + " ||"
-        print(number_row_hand)
-        print("-"*78)
-        card_row_hand = "|| " + " | ".join(f"{card:<12}" for card in hand) + " ||"
-        print(card_row_hand)
-        print("="*78 + "\n")
+        current_player = self.current_player + 1
+        
+        # River
+        print("\n")
+        print(colored("=" * 18, "blue"))
+        print(colored("|| River        ||", "blue"))
+        print(colored("=" * 78, "blue"))
+        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+        print(colored(row, "blue"))
+        print(colored("="*78, "blue"))
+        row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
+        print(colored(row, "blue"))
+        print(colored("="*78, "blue"))
+        print("\n")
+        
+        if current_player == 1:
+            # Player 1
+            print(colored("=" * 18, "magenta"))
+            print(colored(f"|| Player {current_player}     ||", "magenta"))
+            print(colored("=" * 18, "magenta"))
+            print(colored("|| Line         ||", "magenta"))
+            print(colored("=" * 88, "magenta"))
+            line_row = "|| " + " | ".join(f"{str(i)}.{card:<12}" for i, card in enumerate(self.player_lines[0])) + " ||"
+            print(colored(line_row, "magenta"))
+            print(colored("=" * 88, "magenta"))
+            print(colored("|| Hand         ||", "magenta"))
+            print(colored("=" * 88, "magenta"))
+            hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[0])) + " ||"
+            print(colored(hand_row, "magenta"))
+            print(colored("=" * 88, "magenta"))
+            print("\n")
+        
+        else:
+            # Player 2
+            print(colored("=" * 18, "yellow"))
+            print(colored(f"|| Player {current_player}     ||", "yellow"))
+            print(colored("=" * 18, "yellow"))
+            print(colored("|| Line         ||", "yellow"))
+            print(colored("=" * 88, "yellow"))
+            line_row = "|| " + " | ".join(f"{str(i)}.{card:<12}" for i, card in enumerate(self.player_lines[1])) + " ||"
+            print(colored(line_row, "yellow"))
+            print(colored("=" * 88, "yellow"))
+            print(colored("|| Hand         ||", "yellow"))
+            print(colored("=" * 88, "yellow"))
+            hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[1])) + " ||"
+            print(colored(hand_row, "yellow"))
+            print(colored("=" * 88, "yellow"))
+            print("\n")
     
         # Ask for choice
         choice = get_choice(
-            f"Player {player_index + 1}, which card do you want to discard? (1-{len(line)+len(hand)})\n",
-            list(range(1, len(line)+len(hand)+1))
+            f"Player {player_index + 1}, which card do you want to discard? (0-{len(line)+len(hand) - 1})\n",
+            list(range(0, len(line)+len(hand)))
         )
     
         # Return a tuple: (source, index) -> 'line' or 'hand', index in that source
         if choice <= len(line):
-            return ('line', choice - 1)
+            return ('line', choice)
         else:
-            return ('hand', choice - len(line) - 1)  # careful with indexing
+            return ('hand', choice - len(line))  # careful with indexing
 
 
     # Playing a turn 
@@ -240,35 +254,45 @@ class GameState:
             'Decree',
             'Ending']
         
-        choice = get_choice(
-            f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2.Send an Emissary\n3. Impose an Imperial Decree\n4.Declare the end of the game\n\n',
-            [1, 2, 3, 4]
-        )
+        if not self.ending_available:
+            choice = get_choice(
+                f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2. Send an Emissary\n3. Impose an Imperial Decree\n\n',
+                [1, 2, 3]
+            )
+        else:
+           choice = get_choice(
+                f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2. Send an Emissary\n3. Impose an Imperial Decree\n4. Declare the end of the game\n\n',
+                [1, 2, 3, 4]
+            ) 
         
         if choice == 1:
-            source, index = self.choose_discard(current_player)
-            if source == 'hand':
-                self.player_hands[current_player][index] = self.decks[index][0]
-                self.decks[index].pop(0)
-                self.decks[index].append('')
-                print(f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the {index+1} position in their {source}.\n")
-            else:
-                self.player_lines[current_player][index] = self.decks[index][0]
-                self.decks[index].pop(0)
-                self.decks[index].append('')
-                print(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the {index+1} position in their {source}.\n")
+            while True:
+                try:
+                    source, index = self.choose_discard(current_player)
+                    if source == 'hand':
+                        self.player_hands[current_player][index] = self.decks[index][0]
+                        self.decks[index].pop(0)
+                        self.cards_left[index] -= 1
+                        print(f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the {index+1} position in their {source}.\n")
+                    else:
+                        self.player_lines[current_player][index] = self.decks[index][0]
+                        self.decks[index].pop(0)
+                        self.cards_left[index] -= 1
+                        print(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the {index+1} position in their {source}.\n")
+                    break
+                except IndexError:
+                    print('This deck is empty, please choose another one.')
+        
         if choice == 4:
             return True
+        
+        # Showing Ending
+        if 0 in self.cards_left:
+            self.ending_available = True
         
         self.current_player = 1 - current_player
 
         
         
         
-
-
-
-
-
-
-
+1

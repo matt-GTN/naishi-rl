@@ -1,5 +1,5 @@
 from naishi import GameState
 
-state = GameState()
+game = GameState().create_initial_state()
 
-state.show()
+game.show()

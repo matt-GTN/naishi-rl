@@ -29,7 +29,10 @@ class GameState:
     emissaries: List[int] = field(default_factory=list)
     current_player: int = 0
     cards_left: List[int] = field(default_factory=list)
+    error_message: str = ''
+    game_message: str = ''
     ending_available: bool = False
+    decree_used: List[bool] = field(default_factory=list)
 
 ### Initialisation ###
     @staticmethod
@@ -37,7 +40,7 @@ class GameState:
         print("\n")
         print_banner()
         print("\n\n")
-        """Factory method - replaces global initialization"""
+        """Initialize the game state with base info"""
         if seed is not None:
             r.seed(seed)
            
@@ -127,6 +130,7 @@ class GameState:
         
         # Emissaries
         state.emissaries = [2, 2]
+        state.decree_used = [False, False]
         
         return state
 
@@ -241,30 +245,25 @@ class GameState:
         if choice <= len(line):
             return ('line', choice)
         else:
-            return ('hand', choice - len(line))  # careful with indexing
+            return ('hand', choice - len(line))
 
 
     # Playing a turn 
     def play(self):
         current_player = self.current_player
         emissaries = self.emissaries[current_player]
-        options = [
-            'Emissary',
-            'Developing',
-            'Decree',
-            'Ending']
+        print(self.error_message + '\n')
+        print(self.game_message + '\n')
+        self.error_message = ''
+        self.game_message = ''
         
-        if not self.ending_available:
-            choice = get_choice(
-                f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2. Send an Emissary\n3. Impose an Imperial Decree\n\n',
-                [1, 2, 3]
-            )
-        else:
-           choice = get_choice(
-                f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2. Send an Emissary\n3. Impose an Imperial Decree\n4. Declare the end of the game\n\n',
-                [1, 2, 3, 4]
-            ) 
+        # Playing options
+        choice = get_choice(
+            f'Player {current_player + 1}, what do you want to do ?\n\n1. Develop your Territory\n2. Send an Emissary\n3. Recall your Emissaries\n4. Impose an Imperial Decree\n5. Declare the end of the game\n\n',
+            [1, 2, 3, 4, 5]
+        ) 
         
+        # Developing a Territory
         if choice == 1:
             while True:
                 try:
@@ -273,26 +272,90 @@ class GameState:
                         self.player_hands[current_player][index] = self.decks[index][0]
                         self.decks[index].pop(0)
                         self.cards_left[index] -= 1
-                        print(f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the {index+1} position in their {source}.\n")
+                        self.game_message = f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the position {index+1} in their {source}.\n"
                     else:
                         self.player_lines[current_player][index] = self.decks[index][0]
                         self.decks[index].pop(0)
                         self.cards_left[index] -= 1
-                        print(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the {index+1} position in their {source}.\n")
+                        self.game_message = f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the position {index+1} in their {source}.\n"
                     break
                 except IndexError:
-                    print('This deck is empty, please choose another one.')
+                    print(colored('This deck is empty, please choose another one.', 'red'))
         
-        if choice == 4:
+        # Sending emissaries
+        if choice == 2:
+            pass
+        
+        # Recalling emissaries
+        if choice == 3:
+            if self.decree_used[current_player]:
+                emissaries = 1
+            else:
+                emissaries = 2
+        
+        # Imposing an Imperial Decree
+        if choice == 4 and True not in self.decree_used:
+            self.decree_used[current_player] = True
+            self.emissaries[current_player] -= 1
+            
+            if current_player == 0:
+                # Player 1
+                print(colored("=" * 18, "magenta"))
+                print(colored(f"|| Player {current_player + 1}     ||", "magenta"))
+                print(colored("=" * 18, "magenta"))
+                print(colored("|| Line         ||", "magenta"))
+                print(colored("=" * 88, "magenta"))
+                line_row = "|| " + " | ".join(f"{str(i)}.{card:<12}" for i, card in enumerate(self.player_lines[0])) + " ||"
+                print(colored(line_row, "magenta"))
+                print(colored("=" * 88, "magenta"))
+                print(colored("|| Hand         ||", "magenta"))
+                print(colored("=" * 88, "magenta"))
+                hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[0])) + " ||"
+                print(colored(hand_row, "magenta"))
+                print(colored("=" * 88, "magenta"))
+                print("\n")
+        
+            else:
+                # Player 2
+                print(colored("=" * 18, "yellow"))
+                print(colored(f"|| Player {current_player + 1}     ||", "yellow"))
+                print(colored("=" * 18, "yellow"))
+                print(colored("|| Line         ||", "yellow"))
+                print(colored("=" * 88, "yellow"))
+                line_row = "|| " + " | ".join(f"{str(i)}.{card:<12}" for i, card in enumerate(self.player_lines[1])) + " ||"
+                print(colored(line_row, "yellow"))
+                print(colored("=" * 88, "yellow"))
+                print(colored("|| Hand         ||", "yellow"))
+                print(colored("=" * 88, "yellow"))
+                hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[1])) + " ||"
+                print(colored(hand_row, "yellow"))
+                print(colored("=" * 88, "yellow"))
+                print("\n")
+    
+            decree_choice = get_choice(
+                f'Player {current_player + 1}, which of your cards do you want to impose a decree on ? (0-9)\n',
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            )
+            
+            if decree_choice < 5:
+                index = decree_choice
+                self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index] 
+            else:
+                index = decree_choice - 5
+                self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index] 
+        elif choice == 4:
+            self.error_message = colored('\nThe decree has already been used\n', 'red')        
+        
+        # Ending the game
+        if choice == 5:
             return True
         
-        # Showing Ending
+        # State update
         if 0 in self.cards_left:
             self.ending_available = True
         
-        self.current_player = 1 - current_player
+        if len(self.error_message) == 0:
+            self.current_player = 1 - current_player
+        self.emissaries[current_player] = emissaries
 
         
-        
-        
-1

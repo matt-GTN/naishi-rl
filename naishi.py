@@ -28,6 +28,8 @@ class GameState:
     player_lines: List[List[str]] = field(default_factory=list)
     emissaries: List[int] = field(default_factory=list)
     current_player: int = 0
+    available_swaps: List[int] = field(default_factory=list)
+    available_discards: List[int] = field(default_factory=list)
     cards_left: List[int] = field(default_factory=list)
     error_message: str = ''
     game_message: str = ''
@@ -131,7 +133,8 @@ class GameState:
         # Emissaries
         state.emissaries = [2, 2]
         state.decree_used = [False, False]
-        
+        state.available_swaps = [0, 0, 0]
+        state.available_discards = [0, 0]
         return state
 
 ### Functions ###
@@ -251,6 +254,7 @@ class GameState:
     # Playing a turn 
     def play(self):
         current_player = self.current_player
+        opponent = 1 - current_player
         emissaries = self.emissaries[current_player]
         print(self.error_message + '\n')
         print(self.game_message + '\n')
@@ -271,33 +275,103 @@ class GameState:
                     if source == 'hand':
                         self.player_hands[current_player][index] = self.decks[index][0]
                         self.decks[index].pop(0)
-                        self.cards_left[index] -= 1
-                        self.game_message = f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the position {index+1} in their {source}.\n"
+                        self.game_message = colored(f"\nPlayer {current_player + 1} added {self.player_hands[current_player][index]} to the position {index+1} in their {source}.\n", 'green')
                     else:
                         self.player_lines[current_player][index] = self.decks[index][0]
                         self.decks[index].pop(0)
-                        self.cards_left[index] -= 1
-                        self.game_message = f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the position {index+1} in their {source}.\n"
+                        self.game_message = colored(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the position {index+1} in their {source}.\n", 'green')
                     break
                 except IndexError:
                     print(colored('This deck is empty, please choose another one.', 'red'))
         
         # Sending emissaries
-        if choice == 2:
-            pass
+        
+        if choice == 2 and emissaries != 0:
+            # Choice
+            emissary_choice = get_choice(
+                f'Player {current_player + 1}, what do you want to do with this Emissary ? (1-2)\n1. Swap two cards\n2. Discard two River cards ',
+                [1, 2]
+            )
+            
+            # Swapping cards
+            if emissary_choice == 1 and 0 in self.available_swaps:
+                emissaries -= 1
+                
+                self.game_message = colored(f"\nPlayer {current_player + 1} added {self.player_lines[current_player][index]} to the position {index+1} in their {source}.\n", 'green')
+                for spot in self.available_swaps:
+                    if spot == 0:
+                        spot = current_player + 1
+                        break
+            
+            elif emissary_choice == 1:
+                self.error_message = colored("\nThere's no swapping spots available for your emissary'\n", 'red')
+            
+            # Discarding the River
+            elif emissary_choice == 2 and 0 in self.available_discards:
+                emissaries -= 1
+                
+                # Printing the River
+                print("\n")
+                print(colored("=" * 18, "blue"))
+                print(colored("|| River        ||", "blue"))
+                print(colored("=" * 78, "blue"))
+                row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+                print(colored(row, "blue"))
+                print(colored("="*78, "blue"))
+                row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
+                print(colored(row, "blue"))
+                print(colored("="*78, "blue"))
+                print("\n")
+                
+                discard_choice = get_choice(
+                    f'Player {current_player + 1}, which first card do you want to discard ? (1-5)\n',
+                    [1, 5]
+                )
+                while True:
+                    discard_choice_2 = get_choice(
+                    f'Player {current_player + 1}, which second card do you want to discard ? (1-5)\n',
+                        [1, 5]
+                    )
+                    if discard_choice_2 != discard_choice:
+                        break
+                    else:
+                        print(colored("\nYou need to pick two different cards, choose a different second card\n", 'red'))
+                
+                index = discard_choice - 1
+                index_2 = discard_choice_2 - 1
+                
+                self.game_message = colored(f"\nPlayer {current_player + 1} discarded {self.decks[index][0]} in position {index+1} and {self.decks[index_2][0]} in position {index_2+1} from the River.\n", 'green')
+                
+                self.decks[index].pop(0)
+                self.decks[index_2].pop(0)
+                
+                for spot in self.available_discards:
+                    if spot == 0:
+                        spot = current_player + 1
+                        break
+            
+            elif emissary_choice == 2:
+                self.error_message = colored("\nThere's no discarding spots available for your emissary\n", 'red')
+            
+        elif choice == 2 and emissaries == 0:
+            self.error_message = colored("\nYou don't have an available emissary\n", 'red')
+        
         
         # Recalling emissaries
         if choice == 3:
-            if self.decree_used[current_player]:
+            if self.decree_used[current_player] and emissaries != 1:
                 emissaries = 1
-            else:
+                self.game_message = colored("\nYou recalled your emissary left (the second one is locked by the decree))\n", 'green')
+            elif not self.decree_used[current_player] and emissaries != 2:
                 emissaries = 2
+                self.game_message = colored("\nYou recalled both your emissaries\n", 'green')
+            else:
+                self.error_message = colored("\nYou already have all your available emissaries\n", 'red')
         
         # Imposing an Imperial Decree
-        if choice == 4 and True not in self.decree_used:
-            print(f'DEBUG - Player 1 : {self.decree_used[0]} Player 2 : {self.decree_used[1]}')
+        if choice == 4 and True not in self.decree_used and emissaries != 0:
             self.decree_used[current_player] = True
-            self.emissaries[current_player] -= 1
+            emissaries -= 1
             
             if current_player == 0:
                 # Player 1
@@ -340,13 +414,19 @@ class GameState:
             
             if decree_choice < 5:
                 index = decree_choice
-                self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index] 
+                self.game_message = colored(f"\nPlayer {current_player + 1} swapped a {self.player_lines[current_player][index]} for a {self.player_lines[opponent][index]}.\n", 'green')
+                self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index]
+
             else:
                 index = decree_choice - 5
-                self.player_hands[0][index], self.player_hands[1][index] = self.player_hands[1][index], self.player_hands[0][index] 
+                self.game_message = colored(f"\nPlayer {current_player + 1} swapped a {self.player_hands[current_player][index]} for a {self.player_hands[opponent][index]}.\n", 'green')
+                self.player_hands[0][index], self.player_hands[1][index] = self.player_hands[1][index], self.player_hands[0][index]
+            
+        elif choice == 4 and True not in self.decree_used and emissaries == 0:
+            self.error_message = colored("\nYou don't have an available emissary\n", 'red')
+            
         elif choice == 4:
-            self.error_message = colored('\nThe decree has already been used\n', 'red')
-            print(f'DEBUG - Player 1 : {self.decree_used[0]} Player 2 : {self.decree_used[1]}')        
+            self.error_message = colored('\nThe decree has already been used\n', 'red')      
         
         # Ending the game
         if choice == 5 and self.ending_available:
@@ -362,5 +442,8 @@ class GameState:
             self.current_player = 1 - current_player
         
         self.emissaries[current_player] = emissaries
+        
+        for i, deck in enumerate(self.decks):
+            self.cards_left[i] = len(deck)
 
         

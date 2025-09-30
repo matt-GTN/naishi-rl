@@ -295,6 +295,7 @@ class GameState:
         
         # Imposing an Imperial Decree
         if choice == 4 and True not in self.decree_used:
+            print(f'DEBUG - Player 1 : {self.decree_used[0]} Player 2 : {self.decree_used[1]}')
             self.decree_used[current_player] = True
             self.emissaries[current_player] -= 1
             
@@ -342,13 +343,16 @@ class GameState:
                 self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index] 
             else:
                 index = decree_choice - 5
-                self.player_lines[0][index], self.player_lines[1][index] = self.player_lines[1][index], self.player_lines[0][index] 
+                self.player_hands[0][index], self.player_hands[1][index] = self.player_hands[1][index], self.player_hands[0][index] 
         elif choice == 4:
-            self.error_message = colored('\nThe decree has already been used\n', 'red')        
+            self.error_message = colored('\nThe decree has already been used\n', 'red')
+            print(f'DEBUG - Player 1 : {self.decree_used[0]} Player 2 : {self.decree_used[1]}')        
         
         # Ending the game
-        if choice == 5:
+        if choice == 5 and self.ending_available:
             return True
+        elif choice == 5:
+            self.error_message = colored("\nYou can't end the game yet, no deck is empty\n", 'red')
         
         # State update
         if 0 in self.cards_left:
@@ -356,6 +360,7 @@ class GameState:
         
         if len(self.error_message) == 0:
             self.current_player = 1 - current_player
+        
         self.emissaries[current_player] = emissaries
 
         

@@ -34,6 +34,7 @@ class GameState:
     error_message: str = ''
     game_message: str = ''
     ending_available: bool = False
+    end_next_turn: bool = False
     decree_used: List[bool] = field(default_factory=list)
 
 ### Initialisation ###
@@ -628,21 +629,31 @@ class GameState:
         elif choice == 4:
             self.error_message = colored('\nThe decree has already been used\n', 'red')      
         
-        # Ending the game
+        ### Ending the game ###
+        # By choice
         if choice == 5 and self.ending_available:
-            return True
+            return True    
         elif choice == 5:
             self.error_message = colored("\nYou can't end the game yet, no deck is empty\n", 'red')
         
-        count = 0
+        # When 2 decks are made empty by the first player
+        if self.end_next_turn:
+            return True
+        
+        # Checking if two decks are empty
+        empty_decks_count = 0
         
         for deck in self.decks:
             if not deck:
                 count +=1
             if count > 1:
-                return True
-        
-        # State update
+                if current_player == 0:
+                    return True
+                else:
+                    self.end_next_turn = True
+    
+         
+        ### State update ###
         if 0 in self.cards_left:
             self.ending_available = True
         
@@ -654,4 +665,4 @@ class GameState:
         for i, deck in enumerate(self.decks):
             self.cards_left[i] = len(deck)
 
-        2
+        

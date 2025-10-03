@@ -17,7 +17,6 @@ def get_choice(prompt, options):
         except ValueError:
             print("Please enter a number.")
 
-
 ### Class definition ###
 @dataclass
 class GameState:
@@ -161,7 +160,7 @@ class GameState:
         print(colored("=" * 18, "blue") + " " * 69 + "=" * 15 + " " * 2 + "=" * 15)
         print(colored("|| River        ||", "blue") + " " * 69 + colored("|| Swaps     ||  || Discards  ||", 'white'))
         print(colored("=" * 78, "blue") + " " * 9 + "=" * 15 + " " * 2 + "=" * 15)
-        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.decks[i] else (" "*12) for i in range(5)) + " ||"
         row += " "*9 + colored("|| ", 'white')
         for i, spot in enumerate(self.available_swaps):
             if spot == 1:
@@ -251,7 +250,7 @@ class GameState:
         print(colored("=" * 18, "blue"))
         print(colored("|| River        ||", "blue"))
         print(colored("=" * 78, "blue"))
-        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+        row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.decks[i] else (" "*12) for i in range(5)) + " ||"
         print(colored(row, "blue"))
         print(colored("="*78, "blue"))
         row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
@@ -348,22 +347,151 @@ class GameState:
         if choice == 2 and emissaries != 0:
             # Choice
             emissary_choice = get_choice(
-                f'Player {current_player + 1}, what do you want to do with this Emissary ? (1-2)\n1. Swap two cards\n2. Discard two River cards ',
+                f'Player {current_player + 1}, what do you want to do with this Emissary ? (1-2)\n1. Swap two cards\n2. Discard two River cards\n\n',
                 [1, 2]
             )
             
             # Swapping cards
+            if emissary_choice == 1 and current_player == 0:
+                color = 'magenta'
+            elif emissary_choice == 1 and current_player == 1:
+                color = 'yellow'
             if emissary_choice == 1 and 0 in self.available_swaps:
                 emissaries -= 1
                 
-                self.game_message = colored(f"\nPlayer {current_player + 1} swapped.\n", 'green')
+                where_choice = get_choice(
+                    f'Player {current_player + 1}, where do you want to swap cards ? (1-4)\n1. Hand\n2. Line\n3. Between Hand and Line\n4. River',
+                    [1, 2, 3, 4]
+                )
+                
+                if where_choice == 1:
+                    print(colored("|| Hand         ||", color))
+                    print(colored("=" * 88, color))
+                    hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[current_player])) + " ||"
+                    print(colored(hand_row, color))
+                    print(colored("=" * 88, color))
+                    print("\n")
+                    
+                    while True:
+                        swapping_choice = get_choice(
+                            f'Player {current_player + 1}, pick your first card to swap with. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                        )
+                        swapping_choice_2 = get_choice(
+                            f'Player {current_player + 1}, pick the second card to swap with. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                            )
+                        
+                        if swapping_choice_2 != swapping_choice:
+                            break
+                        else:
+                            print(colored("\nYou need to pick two different cards\n", 'red'))
+                    
+                    card_1 = self.player_hands[current_player][swapping_choice - 1]
+                    card_2 = self.player_hands[current_player][swapping_choice_2 - 1]
+                    location = 'their Hand'
+                    self.player_hands[current_player][swapping_choice - 1], self.player_hands[current_player][swapping_choice_2 - 1] = self.player_hands[current_player][swapping_choice_2 - 1], self.player_hands[current_player][swapping_choice - 1]
+                
+                if where_choice == 2:
+                    print(colored("|| Line         ||", color))
+                    print(colored("=" * 88, color))
+                    line_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_lines[current_player])) + " ||"
+                    print(colored(line_row, color))
+                    print(colored("=" * 88, color))
+                    print("\n")
+                    
+                    while True:
+                        swapping_choice = get_choice(
+                            f'Player {current_player + 1}, pick your first card to swap with. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                        )
+                        swapping_choice_2 = get_choice(
+                            f'Player {current_player + 1}, pick the second card to swap with. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                            )
+                        
+                        if swapping_choice_2 != swapping_choice:
+                            break
+                        else:
+                            print(colored("\nYou need to pick two different cards\n", 'red'))
+                    
+                    card_1 = self.player_lines[current_player][swapping_choice - 1]
+                    card_2 = self.player_lines[current_player][swapping_choice_2 - 1]
+                    location = 'their Line'
+                    self.player_lines[current_player][swapping_choice - 1], self.player_lines[current_player][swapping_choice_2 - 1] = self.player_lines[current_player][swapping_choice_2 - 1], self.player_lines[current_player][swapping_choice - 1]
+                
+                if where_choice == 3:
+                    print(colored("|| Hand         ||", "magenta"))
+                    print(colored("=" * 88, "magenta"))
+                    hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[current_player])) + " ||"
+                    print(colored(hand_row, "magenta"))
+                    print(colored("=" * 88, "magenta"))
+                    print("\n")
+                    print(colored("|| Line         ||", color))
+                    print(colored("=" * 88, color))
+                    line_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_lines[current_player])) + " ||"
+                    print(colored(line_row, color))
+                    print(colored("=" * 88, color))
+                    print("\n")
+                    
+                    swapping_choice = get_choice(
+                        f'Player {current_player + 1}, pick the position in which you want your cards in your Hand and Line to be swapped. (1-5)\n',
+                        [1, 2, 3, 4, 5]
+                    )
+                        
+                    card_1 = self.player_hands[current_player][swapping_choice - 1]
+                    card_2 = self.player_lines[current_player][swapping_choice - 1]
+
+                    self.player_lines[current_player][swapping_choice - 1], self.player_hands[current_player][swapping_choice - 1] = self.player_hands[current_player][swapping_choice - 1], self.player_lines[current_player][swapping_choice - 1]
+                
+                if where_choice == 4:
+                    # Printing the River
+                    print("\n")
+                    print(colored("=" * 18, "blue"))
+                    print(colored("|| River        ||", "blue"))
+                    print(colored("=" * 78, "blue"))
+                    row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+                    print(colored(row, "blue"))
+                    print(colored("="*78, "blue"))
+                    row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
+                    print(colored(row, "blue"))
+                    print(colored("="*78, "blue"))
+                    print("\n")
+                    
+                    while True:
+                        swapping_choice = get_choice(
+                            f'Player {current_player + 1}, pick a first deck to swap its top card.. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                        )
+                        swapping_choice_2 = get_choice(
+                            f'Player {current_player + 1}, pick the second deck to swap its top card with the first one. (1-5)\n',
+                            [1, 2, 3, 4, 5]
+                            )
+                        if self.decks[swapping_choice - 1][0] and self.decks[swapping_choice_2 - 1][0]:
+                            if swapping_choice_2 != swapping_choice:
+                                break
+                            else:
+                                print(colored("\nYou need to pick two different cards\n", 'red'))
+                        else:
+                             print(colored("\nYou cannot pick and empty deck.\n", 'red'))
+                    
+                    card_1 = self.decks[swapping_choice - 1][0]
+                    card_2 = self.decks[swapping_choice_2 - 1][0]
+                    location = 'the River'
+                    self.decks[swapping_choice - 1][0], self.decks[swapping_choice_2 - 1][0] = self.decks[swapping_choice_2 - 1][0], self.decks[swapping_choice - 1][0]
+                
+                if where_choice != 3:    
+                    self.game_message = colored(f"\nPlayer {current_player + 1} swapped {card_1} in position {swapping_choice} and {card_2} in position {swapping_choice_2} from {location}\n", 'green')
+                else:
+                    self.game_message = colored(f"\nPlayer {current_player + 1} swapped {card_1} and {card_2} in position {swapping_choice} between their Line and Hand\n", 'green')
+                
                 for i, spot in enumerate(self.available_swaps):
                     if spot == 0:
                         self.available_swaps[i] = current_player + 1
                         break
         
             elif emissary_choice == 1:
-                self.error_message = colored("\nThere's no swapping spots available for your emissary'\n", 'red')
+                self.error_message = colored("\nThere's no swapping spots available for your emissary\n", 'red')
             
             # Discarding the River
             elif emissary_choice == 2 and 0 in self.available_discards:
@@ -374,7 +502,7 @@ class GameState:
                 print(colored("=" * 18, "blue"))
                 print(colored("|| River        ||", "blue"))
                 print(colored("=" * 78, "blue"))
-                row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.cards_left[i] > 0 else (" "*12) for i in range(5)) + " ||"
+                row = "|| " + " | ".join(f"{self.decks[i][0]:<12}" if self.decks[i] else (" "*12) for i in range(5)) + " ||"
                 print(colored(row, "blue"))
                 print(colored("="*78, "blue"))
                 row = "|| " + " | ".join(f"{str(self.cards_left[i])} left      " for i in range(5)) + " ||" 
@@ -382,11 +510,11 @@ class GameState:
                 print(colored("="*78, "blue"))
                 print("\n")
                 
-                discard_choice = get_choice(
-                    f'Player {current_player + 1}, which first card do you want to discard ? (1-5)\n',
-                    [1, 2, 3, 4, 5]
-                )
                 while True:
+                    discard_choice = get_choice(
+                        f'Player {current_player + 1}, which first card do you want to discard ? (1-5)\n',
+                        [1, 2, 3, 4, 5]
+                    )
                     discard_choice_2 = get_choice(
                     f'Player {current_player + 1}, which second card do you want to discard ? (1-5)\n',
                     [1, 2, 3, 4, 5]
@@ -394,7 +522,7 @@ class GameState:
                     if discard_choice_2 != discard_choice:
                         break
                     else:
-                        print(colored("\nYou need to pick two different cards, choose a different second card\n", 'red'))
+                        print(colored("\nYou need to pick two different cards\n", 'red'))
                 
                 index = discard_choice - 1
                 index_2 = discard_choice_2 - 1
@@ -505,6 +633,14 @@ class GameState:
             return True
         elif choice == 5:
             self.error_message = colored("\nYou can't end the game yet, no deck is empty\n", 'red')
+        
+        count = 0
+        
+        for deck in self.decks:
+            if not deck:
+                count +=1
+            if count > 1:
+                return True
         
         # State update
         if 0 in self.cards_left:

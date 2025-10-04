@@ -17,10 +17,41 @@ def get_choice(prompt, options):
         except ValueError:
             print("Please enter a number.")
 
+def check_adjacency(position, cards):
+    adjacents = {}
+    try:
+        if position != 0 or position != 5:
+            adjacents['left'] = {
+                'card': cards[position - 1],
+                'position': position - 1
+            }
+        if position != 4 or position != 9:
+            adjacents['right'] = {
+                'card': cards[position + 1],
+                'position': position + 1
+            }
+    
+        if position < 5:
+            adjacents['down'] = {
+                'card': cards[position + 5],
+                'position': position + 5
+            }
+        if position > 4: 
+            adjacents['up'] = {
+                'card': cards[position - 5],
+                'position': position - 5
+            }
+    except IndexError:
+        pass
+    
+    return adjacents
+    
+
 ### Class definition ###
 @dataclass
 class GameState:
     cards: List[str] = field(default_factory=list)
+    characters: List[str] = field(default_factory=list)
     cards_count: List[int] = field(default_factory=list)
     total_cards_list: List[str] = field(default_factory=list)
     decks: List[List[str]] = field(default_factory=list)
@@ -61,6 +92,15 @@ class GameState:
                 "Rice fields",
                 "Ronin",
                 "Ninja"]
+        
+        characters = [
+            "Naishi", 
+            "Councellor", 
+            "Sentinel",  
+            "Monk", 
+            "Knight",
+            "Ronin",
+        ]
 
         cards_count = [2, 4, 4, 4, 3, 4, 2, 2, 5, 2, 2]
         cards_left = [6, 6, 6, 6, 6]
@@ -70,6 +110,7 @@ class GameState:
             for i in range(count):
                 total_cards_list.append(card)
         
+        state.characters = characters
         state.cards = cards
         state.card_count = cards_count
         state.cards_left = cards_left
@@ -520,6 +561,7 @@ class GameState:
             self.error_message = colored("\nYou already have all your available emissaries\n", 'red')
     
     def impose_decree(self, current_player, emissaries):
+        opponent = 1 - current_player
         if True not in self.decree_used and emissaries != 0:
             self.decree_used[current_player] = True
             emissaries -= 1
@@ -663,13 +705,267 @@ class GameState:
         elif choice == 5:
             self.error_message = colored("\nYou can't end the game yet, no deck is empty\n", 'red')
         
-        self.check_ending()
+        # Check if game should end due to empty decks
+        if self.check_ending():
+            return True
+        
         self.update_state(current_player, emissaries)
+        return False  # Continue the game
+
+    def score(self):
+        player_scores = {
+            0 : {
+                "Mountain" : 0,
+                "Naishi" : 0, 
+                "Councellor" : 0,  
+                "Sentinel" : 0, 
+                "Fort" : 0,  
+                "Monk" : 0,  
+                "Torii" : 0, 
+                "Knight" : 0, 
+                "Banner" : 0, 
+                "Rice fields" : 0, 
+                "Ronin" : 0, 
+                "Ninja" : 0,
+                "Total" : 0 
+            },
+            1 : {
+                "Mountain" : 0,
+                "Naishi" : 0, 
+                "Councellor" : 0,  
+                "Sentinel" : 0, 
+                "Fort" : 0,  
+                "Monk" : 0,  
+                "Torii" : 0, 
+                "Knight" : 0, 
+                "Banner" : 0, 
+                "Rice fields" : 0, 
+                "Ronin" : 0, 
+                "Ninja" : 0,
+                "Total" : 0,
+            }
+        }
+        
+        for player, score_table in player_scores.items():
+            # Init
+            mountains = 0
+            toriis = 0
+            banners = 0
+            ronins = 0
+            rice_fields = []
+            cards = self.player_lines[player] + self.player_hands[player]
+            
+            if player == 0:
+                color = 'magenta'
+            elif player == 1:
+                color = 'yellow'
+            
+            # Ninja
+            for i, card in enumerate(cards):
+                if card == 'Ninja':
+                    print(colored("|| Hand         ||", "magenta"))
+                    print(colored("=" * 88, "magenta"))
+                    hand_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_hands[player])) + " ||"
+                    print(colored(hand_row, "magenta"))
+                    print(colored("=" * 88, "magenta"))
+                    print("\n")
+                    print(colored("|| Line         ||", color))
+                    print(colored("=" * 88, color))
+                    line_row = "|| " + " | ".join(f"{str(i + 5)}.{card:<12}" for i, card in enumerate(self.player_lines[player])) + " ||"
+                    print(colored(line_row, color))
+                    print(colored("=" * 88, color))
+                    print("\n")
+                    
+                    if self.error_message:
+                        print(self.error_message + '\n')
+                    
+                    while True:
+                        ninja_choice = get_choice(
+                        f'Player {player + 1}, what card do you want to copy with the Ninja in position {i} ? (1-10)\n',
+                            range(1, 11)
+                        )
+                        
+                        copy = cards[ninja_choice]
+                    
+                        if copy == 'Ninja':
+                            print(colored('\nYou need to pick a different card than the Ninja himself', 'red'))
+                        elif copy not in self.characters:
+                            print(colored('\nYou need to pick a character for the Ninja to copy', 'red'))
+                        else: 
+                            break
+                    card = copy          
+                
+            # Ronin preparation
+            filtered_cards = [card for card in set(cards) if card != 'Mountain']
+            num_ronin = len(filtered_cards)
+            
+            for i, card in enumerate(cards):
+                
+                # Count based scoring preparation 
+                if card == 'Mountain':
+                    mountains += 1
+                elif card == 'Torii':
+                    toriis += 1
+                elif card == 'Banner':
+                    banners += 1
+                elif card == 'Ronin':
+                    ronins += 1
+                
+                # Absolute positional scoring
+                elif card == 'Naishi':
+                    if i == 2:
+                        score_table['Naishi'] += 12
+                    elif i == 7:
+                        score_table['Naishi'] += 8
+                elif card == 'Fort':
+                    if i == 0 or i == 4 or i == 5 or i == 9:
+                        score_table['Fort'] += 6
+                
+                # Relative positional scoring
+                else:
+                    adjacency = check_adjacency(i, cards)
+                    
+                    if card == 'Councellor':
+                        if i == 1 or i == 6 or i == 3 or i == 8:
+                            score_table['Councellor'] += 4
+                        elif i == 2 or i == 7:
+                            score_table['Councellor'] += 3
+                        else:
+                            score_table['Councellor'] += 2
+                        
+                        for adjacent_card in adjacency.values():
+                            if adjacent_card['card'] == 'Naishi':
+                                score_table['Councellor'] += 4
+                    
+                    elif card == 'Sentinel':
+                        if 'Sentinel' not in adjacency.values():
+                            score_table['Sentinel'] += 3
+                        
+                        for adjacent_card in adjacency.values():
+                            if adjacent_card['card'] == 'Fort':
+                                score_table['Sentinel'] += 4
+                    
+                    elif card == 'Monk':
+                        if i > 4:
+                            score_table['Monk'] += 5
+                        
+                        for adjacent_card in adjacency.values():
+                            if adjacent_card['card'] == 'Torii':
+                                score_table['Monk'] += 2
+                    
+                    elif card == 'Knight':
+                        if i > 4:
+                            score_table['Knight'] += 3
+                        
+                        if adjacency['up']['card'] == 'Banner':
+                                score_table['Knight'] += 10
+
+            fields_groups = []
+            scoring_fields = []
+            processed = set()
+
+            for i, card in enumerate(cards):
+                if card == 'Rice fields' and i not in processed:
+                    # BFS/DFS to find all connected cards
+                    group = []
+                    stack = [i]
+        
+                    while stack:
+                        current = stack.pop()
+                        if current in processed:
+                            continue
+            
+                        processed.add(current)
+                        group.append(current)
+            
+                        adjacents = check_adjacency(current, cards)
+                        for direction, info in adjacents.items():
+                            adj_idx = info['position']
+                            if info['card'] == 'Rice fields' and adj_idx not in processed:
+                                stack.append(adj_idx)
+        
+                    group.sort()
+                    scoring_fields.extend(group)
+                    fields_groups.append(len(group))
+            
+            for group in fields_groups:
+                score = 10 * (group - 1)
+                if group == 5:
+                    score = 40
+                score_table['Rice fields'] += score
+            
+            # Count based scoring
+            if mountains == 1:
+                score_table['Mountain'] = 5
+            elif mountains > 1:
+                score_table['Mountain'] = -5
+            
+            if toriis == 1:
+                score_table['Torii'] = -5
+            elif toriis >= 3:
+                score_table['Torii'] = 30
+            
+            if banners == 1:
+                score_table['Banner'] = 3
+            elif banners == 2:
+                score_table['Banner'] = 8
+            
+            # Ronin scoring
+            if num_ronin == 8:
+                score_table['Ronin'] = ronins * 8
+            elif num_ronin == 9:
+                score_table['Ronin'] = ronins * 15
+            elif num_ronin == 10:
+                score_table['Ronin'] = 45
+        # Calcul du total
+        for player in player_scores.values():
+            for name, value in player.items():
+                if name != 'Total':
+                    player['Total'] += value
+        
+        # Affichage            
+        color1 = 'magenta'
+        color2 = 'yellow'
+        cards = self.cards
+        cards.insert(0, 'Mountain')
+        cards.append('Total')
+        player1_data = list(zip(cards, player_scores[0].values()))
+        player2_data = list(zip(cards, player_scores[1].values()))
+
+        print(colored("|| Player 1       ||", color1) + "  " + colored("|| Player 2        ||", color2))
+        print(colored("=" * 20, color1) + "  " + colored("=" * 20, color2))
+
+        for (card1, score1), (card2, score2) in zip(player1_data, player2_data):
+            print(colored(f"|| {card1:<12}   ||", color1) + "  " + colored(f"|| {card2:<12}   ||", color2))
+            print(colored(f"|| {score1:<12}   ||", color1) + "  " + colored(f"|| {score2:<12}   ||", color2))
+            print(colored("-" * 20, color1) + "  " + colored("-" * 20, color2))
+
+        print("\n")
+        score_p1 = player_scores[0]['Total']
+        score_p2 = player_scores[1]['Total']
+        
+        if score_p1 == score_p2:
+            for player in self.current_player:
+                cards = self.player_lines[player] + self.player_hands[player]
+                filtered_cards = [card for card in set(cards) if card != 'Mountain' and card != 'Ninja']
+                num_ronin = len(filtered_cards)
+                if player == 0:
+                    score_p1 = num_ronin
+                if player == 1:
+                    score_p2 = num_ronin     
+        
+        if score_p1 > score_p2:
+            print(f'Player 1 Victory {score_p1} to {score_p2} !')
+        elif score_p1 == score_p2:
+            print(f'True equality, play again !')
+        else:
+            print(f'Player 2 Victory {score_p2} to {score_p1} !')
          
     def update_state(self, current_player, emissaries):
         ### State update ###
-        if 0 in self.cards_left:
-            self.ending_available = True
+        for deck in self.decks:
+            if not deck:
+                self.ending_available = True
         
         if len(self.error_message) == 0:
             self.current_player = 1 - current_player
@@ -689,11 +985,13 @@ class GameState:
         
         for deck in self.decks:
             if not deck:
-                empty_decks_count +=1
+                empty_decks_count += 1
             if empty_decks_count > 1:
-                if current_player == 0:
-                    return True
-                else:
+                if self.current_player == 0:
                     self.end_next_turn = True
-
+                    return False
+                else:
+                    return True
         
+        return False
+

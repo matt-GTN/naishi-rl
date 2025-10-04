@@ -1,10 +1,15 @@
-from naishi import GameState
+# game.py
+# Entry point for human vs human play
 
-game = GameState().create_initial_state()
+from naishi_pvp import GameState
 
-game.show()
-end = False
-while end == False:
-    end = game.play()
+if __name__ == "__main__":
+    game = GameState.create_initial_state()
     game.show()
-game.score()
+    
+    end = False
+    while not end:
+        end = game.play()
+        game.show()
+    
+    game.score()

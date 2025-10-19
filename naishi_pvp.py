@@ -27,9 +27,10 @@ class GameState:
         self.end_next_turn = False
         self.error_message = ''
         self.game_message = ''
+        self.turn_count = 0
     
     @staticmethod
-    def create_initial_state(seed=None):
+    def create_initial_state(seed=None, ai_player_index=None):
         """Initialize and set up a new game"""
         print("\n")
         print_banner()
@@ -39,7 +40,7 @@ class GameState:
         game._setup_game()
         return game
     
-    def _setup_game(self):
+    def _setup_game(self, ai_player_index=None):
         """Set up initial game state"""
         # Create and shuffle all cards
         total_cards = []
@@ -62,15 +63,23 @@ class GameState:
         # Show river for drafting
         self._display_river_for_draft()
         
-        # Exchange phase
-        p1_choice = get_choice(
-            f'Player 1 - What card do you want to give to your opponent? (1/2)\n\n1. {player_hands[0][0]}\n2. {player_hands[0][1]}\n\n',
-            [1, 2]
-        )
-        p2_choice = get_choice(
-            f'Player 2 - What card do you want to give to your opponent? (1/2)\n\n1. {player_hands[1][0]}\n2. {player_hands[1][1]}\n\n',
-            [1, 2]
-        )
+        if ai_player_index == 0:
+            p1_choice = r.choice([1, 2])
+            print(colored(f"Player 1 (AI) chooses to give card #{p1_choice}", "yellow"))
+        else:
+            p1_choice = get_choice(
+                f'Player 1 - What card do you want to give to your opponent? (1/2)\n\n1. {player_hands[0][0]}\n2. {player_hands[0][1]}\n\n',
+                [1, 2]
+            )
+            
+        if ai_player_index == 1:
+            p2_choice = r.choice([1, 2])
+            print(colored(f"Player 2 (AI) chooses to give card #{p2_choice}", "yellow"))
+        else:
+            p2_choice = get_choice(
+                f'Player 2 - What card do you want to give to your opponent? (1/2)\n\n1. {player_hands[1][0]}\n2. {player_hands[1][1]}\n\n',
+                [1, 2]
+            )
         
         # Perform exchanges
         p1_idx = p1_choice - 1
@@ -590,7 +599,8 @@ class GameState:
         elif choice == 5:
             # Declare end
             if self.ending_available:
-                return True
+                self.end_next_turn = True
+                self.game_message = colored(f"\nPlayer {player_num} declared the end of the game. Opponent gets one final turn.\n", 'green')
             else:
                 self.error_message = colored("\nYou can't end the game yet, no deck is empty\n", 'red')
         
@@ -631,6 +641,7 @@ class GameState:
         # Switch player if no error
         if not self.error_message:
             self.current_player_index = 1 - self.current_player_index
+            self.turn_count += 1
     
     def score(self):
         """Calculate and display final scores"""

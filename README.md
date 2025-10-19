@@ -1,2 +1,2 @@
 # naishi-rl
-Reinforcemet Learning approach to the Naismith board game
+Reinforcemet Learning approach to the Naishi board game

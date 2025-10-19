@@ -25,6 +25,14 @@ class Scorer:
         
         for i, card in enumerate(cards):
             if card == 'Ninja':
+                # Check if there are any valid characters to copy (excluding other Ninjas)
+                valid_characters = [c for c in cards if c in characters and c != 'Ninja']
+                
+                if not valid_characters:
+                    # No valid characters to copy - Ninja scores 0 (leave as Ninja)
+                    # This handles the edge case where all cards are buildings/mountains
+                    continue
+                
                 while True:
                     choice_index = get_ninja_choice_func(i, cards)
                     copy = cards[choice_index]
@@ -171,7 +179,7 @@ class Scorer:
         # Banner scoring
         if banners == 1:
             score_table['Banner'] = 3
-        elif banners == 2:
+        elif banners >= 2:
             score_table['Banner'] = 8
         
         # Ronin scoring
@@ -218,10 +226,14 @@ class Scorer:
         # Score each group
         total_score = 0
         for group_size in groups:
-            if group_size == 5:
-                total_score += 40
-            else:
-                total_score += 10 * (group_size - 1)
+            if group_size == 1:
+                total_score += 0
+            elif group_size == 2:
+                total_score += 10
+            elif group_size == 3:
+                total_score += 20
+            elif group_size >= 4:
+                total_score += 30  # Maximum score for 4+ connected
         
         return total_score
     

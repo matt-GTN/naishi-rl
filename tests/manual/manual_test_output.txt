@@ -1,0 +1,264 @@
+
+======================================================================
+  NAISHI MANUAL TESTING GUIDE - TASK 39
+  Complete RULES.md Compliance Verification
+======================================================================
+
+======================================================================
+  AUTOMATED QUICK VERIFICATION
+======================================================================
+
+Running automated checks...
+
+======================================================================
+  SETUP VERIFICATION (RULES.md Section 2)
+======================================================================
+
+❌ FAIL: 34 cards total in decks - Found: 30
+✅ PASS: 5 decks - Found: 5
+✅ PASS: 6 cards per deck - Sizes: [6, 6, 6, 6, 6]
+✅ PASS: P1 has cards - Found: 5
+✅ PASS: P2 has cards - Found: 5
+✅ PASS: P1 has 2 emissaries - Found: 2
+✅ PASS: P2 has 2 emissaries - Found: 2
+✅ PASS: Player 1 starts - Current: P1
+✅ PASS: In draft phase - Draft phase: True
+
+======================================================================
+  CARD TYPES VERIFICATION
+======================================================================
+
+
+Card Type Distribution:
+  Mountain       : 10 cards
+  Naishi         :  2 cards
+  Councellor     :  4 cards
+  Sentinel       :  4 cards
+  Fort           :  4 cards
+  Monk           :  3 cards
+  Torii          :  4 cards
+  Knight         :  2 cards
+  Banner         :  2 cards
+  Rice Fields    :  5 cards
+  Ronin          :  2 cards
+  Ninja          :  2 cards
+
+======================================================================
+  ACTION TYPES VERIFICATION
+======================================================================
+
+
+Action Types Available:
+  1: Develop Territory
+  2: Emissary Swap
+  3: Emissary Discard
+  4: Recall Emissaries
+  5: Impose Decree
+  6: Declare End
+
+To test each action during gameplay:
+  1. Develop: Choose position 0-9, select card from deck
+  2. Swap: Choose swap type (1-4), select positions
+  3. Discard: Select 2 cards from river to discard
+  4. Recall: Restore emissaries and clear markers
+  5. Decree: Swap cards at same position with opponent
+  6. End Game: Declare end when 1+ decks empty
+
+======================================================================
+AUTOMATED VERIFICATION SUMMARY
+======================================================================
+❌ FAIL: Setup
+✅ PASS: Card Types
+✅ PASS: Actions
+
+======================================================================
+  TURN STRUCTURE VERIFICATION (RULES.md Section 4)
+======================================================================
+
+
+Turn Option A: Develop → Optional Emissary
+  1. Choose ACTION_DEVELOP
+  2. System should offer optional emissary
+  3. Can accept or decline
+  4. Turn ends after choice
+
+Turn Option B: Emissary → Required Develop
+  1. Choose ACTION_SWAP or ACTION_DISCARD
+  2. System should require develop
+  3. Must choose ACTION_DEVELOP
+  4. Turn ends after develop
+
+Turn Option C: Other Actions
+  1. Choose ACTION_RECALL, ACTION_DECREE, or ACTION_END_GAME
+  2. Turn ends immediately
+
+======================================================================
+  EDGE CASES TO TEST
+======================================================================
+
+
+Edge Cases to Verify During Testing:
+   1. Empty deck handling (develop from empty deck)
+   2. All emissary spots full (3 swaps, 2 discards)
+   3. No emissaries available (can't use emissary actions)
+   4. Decree used (max emissaries becomes 1)
+   5. Recall with decree (only restores to 1)
+   6. Multiple Mountains (should score -5 total)
+   7. Ninja copying (should score as copied card)
+   8. Rice Fields connectivity (test all group sizes)
+   9. Ronin unique types (test 8, 9, 10 types)
+  10. Tiebreaker (same score, different unique cards)
+  11. Auto-end (2+ decks empty after P1)
+  12. P2 final turn (always gets one more turn)
+  13. Optional emissary declined (turn ends)
+  14. Must develop enforced (only develop legal)
+
+======================================================================
+  SCORING VERIFICATION (RULES.md Section 8)
+======================================================================
+
+
+Scoring Rules to Verify:
+  Mountain       : 1 Mountain = +5, 2+ Mountains = -5 total
+  Naishi         : Position 2 = +12, Position 7 = +8, others = 0
+  Councellor     : Position bonuses + adjacent Naishi bonuses
+  Sentinel       : Not adjacent to Sentinel = +3, adjacent to Fort = +4 each
+  Fort           : Corners (0,4,5,9) = +6, others = 0
+  Monk           : In hand = +5, adjacent to Torii = +2 each
+  Torii          : 1 = -5, 2 = 0, 3+ = +30 total
+  Knight         : In hand = +3, below Banner = +10
+  Banner         : 1 = +3, 2+ = +8 total
+  Rice Fields    : Connected groups: 1=0, 2=10, 3=20, 4+=30
+  Ronin          : Unique types: 8=8, 9=15, 10=45 per Ronin
+  Ninja          : Copies a character card and scores as that card
+  Tiebreaker     : Most unique card types wins
+
+======================================================================
+  GAME ENDING VERIFICATION (RULES.md Section 7)
+======================================================================
+
+
+Ending Rules to Verify:
+  1. Declare End available when 1+ decks empty
+  2. Declare End NOT available when 0 decks empty
+  3. Auto-end when 2+ decks empty (after P1's turn)
+  4. P2 always gets final turn for fairness
+  5. Game terminates after P2's final turn
+  6. Scoring occurs at game end
+  7. Winner determined correctly
+
+======================================================================
+  MANUAL TESTING INSTRUCTIONS
+======================================================================
+
+
+This guide helps you manually test the Naishi game implementation.
+
+STEP 1: Human vs Human Game
+----------------------------
+Run: python naishi_pvp.py
+
+Test checklist:
+  ☐ Game starts correctly (2 cards each, 3 Mountains each)
+  ☐ Turn Option A works (Develop → Optional Emissary)
+  ☐ Turn Option B works (Emissary → Required Develop)
+  ☐ All action types work (Develop, Swap, Discard, Recall, Decree, End)
+  ☐ Emissary spots tracked correctly (3 swaps, 2 discards)
+  ☐ Game ends correctly (declare or auto-end)
+  ☐ Scoring is correct
+  ☐ Winner determined correctly
+
+STEP 2: Human vs AI Game
+-------------------------
+Run: python play_vs_ai.py
+
+Test checklist:
+  ☐ AI makes legal moves
+  ☐ AI follows turn structure correctly
+  ☐ Both players use same rules
+  ☐ Game completes successfully
+  ☐ Scoring is correct for both players
+
+STEP 3: Test All Card Types
+----------------------------
+During gameplay, try to get each card type in your territory:
+  ☐ Mountain (should have 3 at start)
+  ☐ Naishi (test position 2 and 7 for bonuses)
+  ☐ Councellor (test position bonuses and Naishi adjacency)
+  ☐ Sentinel (test not adjacent to Sentinel, adjacent to Fort)
+  ☐ Fort (test corners: 0, 4, 5, 9)
+  ☐ Monk (test in hand and adjacent to Torii)
+  ☐ Torii (test 1, 2, 3+ for different scores)
+  ☐ Knight (test in hand and below Banner)
+  ☐ Banner (test 1 vs 2+)
+  ☐ Rice Fields (test connected groups)
+  ☐ Ronin (test with different unique type counts)
+  ☐ Ninja (test copying different cards)
+
+STEP 4: Test All Actions
+-------------------------
+  ☐ ACTION_DEVELOP: Develop territory at each position (0-9)
+  ☐ ACTION_SWAP Type 1: Swap in Hand
+  ☐ ACTION_SWAP Type 2: Swap in Line
+  ☐ ACTION_SWAP Type 3: Swap between Hand and Line
+  ☐ ACTION_SWAP Type 4: Swap in River
+  ☐ ACTION_DISCARD: Discard 2 cards from river
+  ☐ ACTION_RECALL: Restore emissaries and clear markers
+  ☐ ACTION_DECREE: Swap cards at same position with opponent
+  ☐ ACTION_END_GAME: Declare end when 1+ decks empty
+
+STEP 5: Test Edge Cases
+------------------------
+  ☐ Develop from empty deck (should handle gracefully)
+  ☐ Use all 3 swap spots (4th swap should be blocked)
+  ☐ Use both discard spots (3rd discard should be blocked)
+  ☐ Try emissary action with 0 emissaries (should be blocked)
+  ☐ Use decree (max emissaries becomes 1)
+  ☐ Recall after decree (should only restore to 1)
+  ☐ Get 2+ Mountains (should score -5 total, not +10)
+  ☐ Use Ninja (should copy and score as copied card)
+  ☐ Create Rice Fields groups (test 1, 2, 3, 4+ connected)
+  ☐ Get 8, 9, or 10 unique types with Ronin
+  ☐ Tie score (should use unique cards as tiebreaker)
+  ☐ Let 2+ decks empty after P1 (should auto-end after P2)
+  ☐ Decline optional emissary (turn should end)
+  ☐ Use emissary first (must develop should be enforced)
+
+STEP 6: Verify Scoring
+-----------------------
+At game end, manually calculate scores and compare with system:
+  ☐ Count each card type
+  ☐ Apply scoring rules from RULES.md Section 8
+  ☐ Verify system score matches manual calculation
+  ☐ Check both players' scores
+  ☐ Verify winner is correct
+
+STEP 7: Verify Ending
+----------------------
+  ☐ Try to declare end with 0 decks empty (should be blocked)
+  ☐ Declare end with 1 deck empty (should work)
+  ☐ Let 2+ decks empty after P1 (should auto-end after P2)
+  ☐ Verify P2 always gets final turn
+  ☐ Verify game terminates correctly
+
+REPORTING RESULTS
+-----------------
+After completing manual testing, document:
+  1. Any bugs found
+  2. Any rules violations
+  3. Any unexpected behavior
+  4. Overall compliance assessment
+
+
+
+======================================================================
+  READY FOR MANUAL TESTING
+======================================================================
+
+Next steps:
+  1. Run: python naishi_pvp.py (Human vs Human)
+  2. Run: python play_vs_ai.py (Human vs AI)
+  3. Follow the checklist above
+  4. Document any issues found
+
+

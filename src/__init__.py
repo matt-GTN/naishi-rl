@@ -1,0 +1,1 @@
+"""Naishi game implementation"""

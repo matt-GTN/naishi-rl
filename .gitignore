@@ -171,3 +171,8 @@ models/
 training_logs/
 
 /.kiro
+/reports
+/training_logs
+/tensorboard_logs
+/analytics_reports
+tensorboard_summary.txt

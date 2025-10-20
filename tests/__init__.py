@@ -1,0 +1,1 @@
+"""Naishi test suite"""

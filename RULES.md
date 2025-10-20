@@ -37,7 +37,7 @@
 
 1. **Shuffle all cards** (34 total cards)
 2. **Deal River:** Create 5 decks of 6 cards each, face-down
-3. **Deal starting hands:** Each player receives 2 random cards
+3. **Deal starting hands:** Each player receives 2 cards out of the 4 left after dealing the River
 4. **Draft phase:** 
    - Players view the top card of each River deck
    - Each player chooses 1 of their 2 cards to give to their opponent
